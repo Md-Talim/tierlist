@@ -17,7 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import type { ChangeEvent, KeyboardEvent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SortableItem from "./components/SortableItem";
 import type { Tier } from "./store/useTierStore";
 import useTierStore from "./store/useTierStore";
@@ -215,6 +215,7 @@ function App() {
   const addTier = useTierStore((state) => state.addTier);
   const deleteTier = useTierStore((state) => state.deleteTier);
   const reorderTiers = useTierStore((state) => state.reorderTiers);
+  const resetStore = useTierStore((state) => state.resetStore);
 
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
@@ -260,15 +261,18 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [pasteMessage]);
 
-  const addImageFileToBank = async (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    addItem({
-      id: nanoid(),
-      type: "image",
-      content: dataUrl,
-    });
-  };
+  const addImageFileToBank = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith("image/")) return;
+      const dataUrl = await readFileAsDataUrl(file);
+      addItem({
+        id: nanoid(),
+        type: "image",
+        content: dataUrl,
+      });
+    },
+    [addItem],
+  );
 
   const handleImageInputChange = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -304,7 +308,7 @@ function App() {
     return () => {
       document.removeEventListener("paste", listener);
     };
-  }, [addItem]);
+  }, [addImageFileToBank]);
 
   const handleAddTextItem = () => {
     const value = newTextItem.trim();
@@ -421,12 +425,29 @@ function App() {
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
               Tier List
             </h1>
-            <button
-              type="button"
-              className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/10"
-            >
-              Export as PNG
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to reset? This cannot be undone.",
+                    )
+                  ) {
+                    resetStore();
+                  }
+                }}
+                className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/10"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/10"
+              >
+                Export as PNG
+              </button>
+            </div>
           </header>
 
           <section className="overflow-hidden rounded-lg border border-white/10 bg-zinc-800/50">

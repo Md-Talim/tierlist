@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type ItemType = "text" | "image";
 
@@ -75,93 +76,109 @@ const insertAtIndex = (
   return next;
 };
 
-const useTierStore = create<TierStore>((set) => ({
-  ...createDefaultState(),
-
-  addItem: ({ id, type, content }) =>
-    set((state) => ({
-      items: {
-        ...state.items,
-        [id]: { id, type, content },
-      },
-      bankItemIds: [...state.bankItemIds, id],
-    })),
-
-  moveItem: ({ itemId, fromId, toId, toIndex }) =>
-    set((state) => {
-      const tiers = state.tiers.map((tier) => ({
-        ...tier,
-        itemIds: [...tier.itemIds],
-      }));
-      let bankItemIds = [...state.bankItemIds];
-
-      if (fromId === "bank") {
-        bankItemIds = removeFromList(bankItemIds, itemId);
-      } else {
-        const fromTier = tiers.find((tier) => tier.id === fromId);
-        if (fromTier) {
-          fromTier.itemIds = removeFromList(fromTier.itemIds, itemId);
-        }
-      }
-
-      if (toId === "bank") {
-        bankItemIds = insertAtIndex(bankItemIds, itemId, toIndex);
-      } else {
-        const toTier = tiers.find((tier) => tier.id === toId);
-        if (toTier) {
-          toTier.itemIds = insertAtIndex(toTier.itemIds, itemId, toIndex);
-        }
-      }
-
-      return { tiers, bankItemIds };
-    }),
-
-  addTier: () =>
-    set((state) => ({
-      tiers: [
-        ...state.tiers,
-        {
-          id: `tier-${crypto.randomUUID()}`,
-          label: "New",
-          color: "#AAAAAA",
-          itemIds: [],
-        },
-      ],
-    })),
-
-  deleteTier: (tierId) =>
-    set((state) => {
-      const tierToDelete = state.tiers.find((tier) => tier.id === tierId);
-      if (!tierToDelete) return state;
-
-      return {
-        tiers: state.tiers.filter((tier) => tier.id !== tierId),
-        bankItemIds: [...state.bankItemIds, ...tierToDelete.itemIds],
-      };
-    }),
-
-  updateTier: (tierId, updates) =>
-    set((state) => ({
-      tiers: state.tiers.map((tier) =>
-        tier.id === tierId
-          ? {
-              ...tier,
-              ...(updates.label !== undefined ? { label: updates.label } : {}),
-              ...(updates.color !== undefined ? { color: updates.color } : {}),
-            }
-          : tier,
-      ),
-    })),
-
-  reorderTiers: (newTiersArray) =>
-    set(() => ({
-      tiers: newTiersArray,
-    })),
-
-  resetStore: () =>
-    set(() => ({
+const useTierStore = create<TierStore>()(
+  persist(
+    (set) => ({
       ...createDefaultState(),
-    })),
-}));
+
+      addItem: ({ id, type, content }) =>
+        set((state) => ({
+          items: {
+            ...state.items,
+            [id]: { id, type, content },
+          },
+          bankItemIds: [...state.bankItemIds, id],
+        })),
+
+      moveItem: ({ itemId, fromId, toId, toIndex }) =>
+        set((state) => {
+          const tiers = state.tiers.map((tier) => ({
+            ...tier,
+            itemIds: [...tier.itemIds],
+          }));
+          let bankItemIds = [...state.bankItemIds];
+
+          if (fromId === "bank") {
+            bankItemIds = removeFromList(bankItemIds, itemId);
+          } else {
+            const fromTier = tiers.find((tier) => tier.id === fromId);
+            if (fromTier) {
+              fromTier.itemIds = removeFromList(fromTier.itemIds, itemId);
+            }
+          }
+
+          if (toId === "bank") {
+            bankItemIds = insertAtIndex(bankItemIds, itemId, toIndex);
+          } else {
+            const toTier = tiers.find((tier) => tier.id === toId);
+            if (toTier) {
+              toTier.itemIds = insertAtIndex(toTier.itemIds, itemId, toIndex);
+            }
+          }
+
+          return { tiers, bankItemIds };
+        }),
+
+      addTier: () =>
+        set((state) => ({
+          tiers: [
+            ...state.tiers,
+            {
+              id: `tier-${crypto.randomUUID()}`,
+              label: "New",
+              color: "#AAAAAA",
+              itemIds: [],
+            },
+          ],
+        })),
+
+      deleteTier: (tierId) =>
+        set((state) => {
+          const tierToDelete = state.tiers.find((tier) => tier.id === tierId);
+          if (!tierToDelete) return state;
+
+          return {
+            tiers: state.tiers.filter((tier) => tier.id !== tierId),
+            bankItemIds: [...state.bankItemIds, ...tierToDelete.itemIds],
+          };
+        }),
+
+      updateTier: (tierId, updates) =>
+        set((state) => ({
+          tiers: state.tiers.map((tier) =>
+            tier.id === tierId
+              ? {
+                  ...tier,
+                  ...(updates.label !== undefined
+                    ? { label: updates.label }
+                    : {}),
+                  ...(updates.color !== undefined
+                    ? { color: updates.color }
+                    : {}),
+                }
+              : tier,
+          ),
+        })),
+
+      reorderTiers: (newTiersArray) =>
+        set(() => ({
+          tiers: newTiersArray,
+        })),
+
+      resetStore: () =>
+        set(() => ({
+          ...createDefaultState(),
+        })),
+    }),
+    {
+      name: "tierlist-state",
+      partialize: (state) => ({
+        tiers: state.tiers,
+        items: state.items,
+        bankItemIds: state.bankItemIds,
+      }),
+    },
+  ),
+);
 
 export default useTierStore;
