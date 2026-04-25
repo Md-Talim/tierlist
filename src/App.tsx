@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { toPng } from "html-to-image";
 import { nanoid } from "nanoid";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -221,7 +222,9 @@ function App() {
   const [editingLabel, setEditingLabel] = useState("");
   const [newTextItem, setNewTextItem] = useState("");
   const [pasteMessage, setPasteMessage] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
 
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
@@ -325,6 +328,23 @@ function App() {
   const handleTextSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     handleAddTextItem();
+  };
+
+  const handleExportPng = async () => {
+    if (!boardRef.current || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(boardRef.current);
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "tierlist.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
@@ -443,14 +463,19 @@ function App() {
               </button>
               <button
                 type="button"
-                className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/10"
+                onClick={handleExportPng}
+                disabled={isExporting}
+                className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Export as PNG
+                {isExporting ? "Exporting..." : "Export as PNG"}
               </button>
             </div>
           </header>
 
-          <section className="overflow-hidden rounded-lg border border-white/10 bg-zinc-800/50">
+          <section
+            ref={boardRef}
+            className="overflow-hidden rounded-lg border border-white/10 bg-zinc-800/50"
+          >
             <SortableContext
               items={tierIds}
               strategy={verticalListSortingStrategy}
