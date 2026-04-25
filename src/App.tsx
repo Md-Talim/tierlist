@@ -117,7 +117,7 @@ function TierRow({
       }`}
     >
       <div
-        className="relative flex w-15 items-center justify-center text-lg font-bold text-zinc-900"
+        className="relative flex w-12 items-center justify-center text-base font-bold text-zinc-900 sm:w-15 sm:text-lg"
         style={{ backgroundColor: tier.color }}
       >
         <button
@@ -137,7 +137,7 @@ function TierRow({
             onChange={(e) => onChangeEditValue(e.target.value)}
             onBlur={onCommitEdit}
             onKeyDown={handleLabelKeyDown}
-            className="w-10 bg-transparent text-center text-lg font-bold text-zinc-900 outline-none"
+            className="w-8 bg-transparent text-center text-base font-bold text-zinc-900 outline-none sm:w-10 sm:text-lg"
           />
         ) : (
           <button
@@ -441,11 +441,11 @@ function App() {
     >
       <main className="min-h-screen bg-zinc-900 text-zinc-100">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-          <header className="mb-6 flex items-center justify-between">
+          <header className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
               Tier List
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={() => {
@@ -561,7 +561,7 @@ function App() {
             <SortableContext items={bankItemIds} strategy={rectSortingStrategy}>
               <DroppableContainer
                 id="bank"
-                className="flex min-h-32 flex-wrap gap-3 rounded-lg border border-white/10 bg-zinc-800/40 p-3"
+                className="flex min-h-32 flex-nowrap gap-3 overflow-x-auto rounded-lg border border-white/10 bg-zinc-800/40 p-3 sm:flex-wrap sm:overflow-x-visible"
               >
                 {bankItemIds.map((itemId) => {
                   const item = items[itemId];

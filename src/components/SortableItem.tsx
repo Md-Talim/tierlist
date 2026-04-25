@@ -27,7 +27,7 @@ function SortableItem({ item }: SortableItemProps) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-700/80">
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-700/80 sm:h-20 sm:w-20">
         {item.type === "image" ? (
           <img
             src={item.content}
