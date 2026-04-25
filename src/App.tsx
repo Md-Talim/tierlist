@@ -573,6 +573,12 @@ function App() {
                 id="bank"
                 className="flex min-h-32 flex-nowrap gap-3 overflow-x-auto rounded-lg border border-white/10 bg-zinc-800/40 p-3 sm:flex-wrap sm:overflow-x-visible"
               >
+                {bankItemIds.length === 0 ? (
+                  <p className="text-sm text-zinc-500">
+                    Upload images or add text items below to get started.
+                  </p>
+                ) : null}
+
                 {bankItemIds.map((itemId) => {
                   const item = items[itemId];
                   if (!item) return null;
