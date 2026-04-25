@@ -41,6 +41,7 @@ type TierRowProps = {
   onCancelEdit: () => void;
   onChangeColor: (tierId: string, color: string) => void;
   onDeleteTier: (tierId: string) => void;
+  onRemoveItem: (itemId: string) => void;
 };
 
 function getContainerForId(
@@ -88,6 +89,7 @@ function TierRow({
   onCancelEdit,
   onChangeColor,
   onDeleteTier,
+  onRemoveItem,
 }: TierRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
@@ -170,7 +172,13 @@ function TierRow({
           {tier.itemIds.map((itemId) => {
             const item = items[itemId];
             if (!item) return null;
-            return <SortableItem key={item.id} item={item} />;
+            return (
+              <SortableItem
+                key={item.id}
+                item={item}
+                onRemove={() => onRemoveItem(item.id)}
+              />
+            );
           })}
 
           <button
@@ -215,6 +223,7 @@ function App() {
   const updateTier = useTierStore((state) => state.updateTier);
   const addTier = useTierStore((state) => state.addTier);
   const deleteTier = useTierStore((state) => state.deleteTier);
+  const removeItem = useTierStore((state) => state.removeItem);
   const reorderTiers = useTierStore((state) => state.reorderTiers);
   const resetStore = useTierStore((state) => state.resetStore);
 
@@ -497,6 +506,7 @@ function App() {
                     updateTier(tierId, { color })
                   }
                   onDeleteTier={deleteTier}
+                  onRemoveItem={removeItem}
                 />
               ))}
             </SortableContext>
@@ -566,7 +576,13 @@ function App() {
                 {bankItemIds.map((itemId) => {
                   const item = items[itemId];
                   if (!item) return null;
-                  return <SortableItem key={item.id} item={item} />;
+                  return (
+                    <SortableItem
+                      key={item.id}
+                      item={item}
+                      onRemove={() => removeItem(item.id)}
+                    />
+                  );
                 })}
               </DroppableContainer>
             </SortableContext>

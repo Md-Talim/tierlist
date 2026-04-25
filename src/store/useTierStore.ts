@@ -43,6 +43,7 @@ type UpdateTierInput = {
 export type TierStore = TierState & {
   addItem: (item: AddItemInput) => void;
   moveItem: (params: MoveItemInput) => void;
+  removeItem: (itemId: string) => void;
   addTier: () => void;
   deleteTier: (tierId: string) => void;
   updateTier: (tierId: string, updates: UpdateTierInput) => void;
@@ -117,6 +118,19 @@ const useTierStore = create<TierStore>()(
           }
 
           return { tiers, bankItemIds };
+        }),
+
+      removeItem: (itemId) =>
+        set((state) => {
+          const tiers = state.tiers.map((tier) => ({
+            ...tier,
+            itemIds: removeFromList(tier.itemIds, itemId),
+          }));
+          const bankItemIds = removeFromList(state.bankItemIds, itemId);
+          const items = { ...state.items };
+          delete items[itemId];
+
+          return { tiers, bankItemIds, items };
         }),
 
       addTier: () =>
