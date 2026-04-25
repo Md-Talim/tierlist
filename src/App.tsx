@@ -15,8 +15,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { KeyboardEvent } from "react";
-import { useMemo, useState } from "react";
+import { nanoid } from "nanoid";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SortableItem from "./components/SortableItem";
 import type { Tier } from "./store/useTierStore";
 import useTierStore from "./store/useTierStore";
@@ -186,6 +187,24 @@ function TierRow({
   );
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        resolve(result);
+      } else {
+        reject(new Error("Failed to read image as data URL."));
+      }
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function App() {
   const tiers = useTierStore((state) => state.tiers);
   const items = useTierStore((state) => state.items);
@@ -199,19 +218,13 @@ function App() {
 
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
+  const [newTextItem, setNewTextItem] = useState("");
+  const [pasteMessage, setPasteMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
   const tierIds = useMemo(() => tiers.map((tier) => tier.id), [tiers]);
-
-  const handleAddTestItem = () => {
-    const id = `test-${crypto.randomUUID()}`;
-    addItem({
-      id,
-      type: "text",
-      content: "Test",
-    });
-  };
 
   const startEditingTier = (tier: Tier) => {
     setEditingTierId(tier.id);
@@ -232,6 +245,82 @@ function App() {
   const cancelTierLabelEdit = () => {
     setEditingTierId(null);
     setEditingLabel("");
+  };
+
+  const showPasteToast = (message: string) => {
+    setPasteMessage(message);
+  };
+
+  useEffect(() => {
+    if (!pasteMessage) return;
+    const timeoutId = window.setTimeout(() => {
+      setPasteMessage("");
+    }, 1600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pasteMessage]);
+
+  const addImageFileToBank = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    addItem({
+      id: nanoid(),
+      type: "image",
+      content: dataUrl,
+    });
+  };
+
+  const handleImageInputChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await addImageFileToBank(file);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  useEffect(() => {
+    const listener = (event: globalThis.ClipboardEvent) => {
+      const clipboardItems = event.clipboardData?.items;
+      if (!clipboardItems) return;
+
+      for (const clipboardItem of Array.from(clipboardItems)) {
+        if (clipboardItem.kind !== "file") continue;
+        const file = clipboardItem.getAsFile();
+        if (!file || !file.type.startsWith("image/")) continue;
+
+        void addImageFileToBank(file).then(() => {
+          showPasteToast("Image pasted!");
+        });
+        break;
+      }
+    };
+
+    document.addEventListener("paste", listener);
+    return () => {
+      document.removeEventListener("paste", listener);
+    };
+  }, [addItem]);
+
+  const handleAddTextItem = () => {
+    const value = newTextItem.trim();
+    if (!value) return;
+
+    addItem({
+      id: nanoid(),
+      type: "text",
+      content: value,
+    });
+    setNewTextItem("");
+  };
+
+  const handleTextSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    handleAddTextItem();
   };
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
@@ -382,14 +471,46 @@ function App() {
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
                 Item Bank
               </p>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageInputChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/10"
+                >
+                  Add Image
+                </button>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleTextSubmit}
+              className="mb-3 flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={newTextItem}
+                onChange={(e) => setNewTextItem(e.target.value)}
+                placeholder="Add text item"
+                className="w-full rounded-md border border-white/10 bg-zinc-800/40 px-3 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-white/20"
+              />
               <button
-                type="button"
-                onClick={handleAddTestItem}
+                type="submit"
                 className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/10"
               >
-                Add Test Item
+                Add
               </button>
-            </div>
+            </form>
+
+            {pasteMessage ? (
+              <p className="mb-2 text-xs text-zinc-400">{pasteMessage}</p>
+            ) : null}
 
             <SortableContext items={bankItemIds} strategy={rectSortingStrategy}>
               <DroppableContainer
